@@ -1,7 +1,7 @@
 # TimeoutLimit
 
 ## About
-Increases the timeout while connecting to a server to avoid disconnecting disconnect too early.
+Increases the timeout while connecting to a server to avoid disconnecting too early.
 Default is 90 seconds and can be changed in the config, Steam is 30 seconds, Playfab 90 is seconds in vanilla.
 Must to be installed on both client and server, with the same configured timeout in to work reliably.
 

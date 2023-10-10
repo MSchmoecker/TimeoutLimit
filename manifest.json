@@ -1,6 +1,6 @@
 {
 	"name": "TimeoutLimit",
-	"description": "Increases the timeout while connecting to a server to avoid disconnecting disconnect too early",
+	"description": "Increases the timeout while connecting to a server to avoid disconnecting too early",
 	"version_number": "0.1.0",
 	"website_url": "https://github.com/MSchmoecker/TimeoutLimit",
 	"dependencies": [
