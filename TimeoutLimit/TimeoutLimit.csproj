@@ -68,6 +68,11 @@
   <ItemGroup>
     <Content Include="../README.md">
       <Link>README.md</Link>
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="../icon.png">
+      <Link>icon.png</Link>
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
     <Content Include="..\CONTRIBUTING.md">
       <Link>CONTRIBUTING.md</Link>
@@ -86,8 +91,8 @@
     <!--Create Thunderstore Zip-->
     <RemoveDir Directories="$(TMP_DEPLOY_FOLDER)" />
     <Copy SourceFiles="$(TargetDir)$(TargetName).dll" DestinationFolder="$(TMP_DEPLOY_FOLDER)" />
-    <Copy SourceFiles="$(SolutionDir)icon.png" DestinationFolder="$(TMP_DEPLOY_FOLDER)" />
-    <Copy SourceFiles="$(SolutionDir)README.md" DestinationFolder="$(TMP_DEPLOY_FOLDER)" />
+    <Copy SourceFiles="$(TargetDir)icon.png" DestinationFolder="$(TMP_DEPLOY_FOLDER)" />
+    <Copy SourceFiles="$(TargetDir)README.md" DestinationFolder="$(TMP_DEPLOY_FOLDER)" />
     <Copy SourceFiles="$(SolutionDir)manifest.json" DestinationFolder="$(TMP_DEPLOY_FOLDER)" />
     <ZipDirectory SourceDirectory="$(TMP_DEPLOY_FOLDER)" DestinationFile="$(FULL_DEPLOY_FOLDER)/TimeoutLimit-Thunder.zip" Overwrite="true" />
 
