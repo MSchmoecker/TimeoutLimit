@@ -31,6 +31,11 @@ namespace TimeoutLimit {
             return codeMatcher;
         }
 
+        internal static CodeMatcher Print(this CodeMatcher codeMatcher, string message) {
+            Debug.Log(message);
+            return codeMatcher;
+        }
+
         internal static CodeMatcher Print(this CodeMatcher codeMatcher, int before, int after) {
             for (int i = -before; i <= after; ++i) {
                 int currentOffset = i;
