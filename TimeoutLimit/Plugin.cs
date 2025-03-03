@@ -24,6 +24,11 @@ namespace TimeoutLimit {
 
         public void Awake() {
             Timeout = Config.Bind("General", "Timeout", 90f, "Timeout in seconds");
+            Timeout.SettingChanged += (sender, e) => {
+                if (Chainloader.PluginInfos.TryGetValue("com.jotunn.jotunn", out PluginInfo info)) {
+                    SetJotunnTimeout(info);
+                }
+            };
 
             harmony = new Harmony(ModGuid);
             harmony.PatchAll();
@@ -31,11 +36,15 @@ namespace TimeoutLimit {
 
         public void Start() {
             foreach (PluginInfo plugin in Chainloader.PluginInfos.Values) {
-                if (plugin == null) {
+                if (plugin == null || !plugin.Instance) {
                     continue;
                 }
 
                 Logger.LogInfo($"Patching {plugin.Metadata.Name} [{plugin.Metadata.GUID}]");
+
+                if (plugin.Metadata.GUID == "com.jotunn.jotunn") {
+                    SetJotunnTimeout(plugin);
+                }
 
                 Assembly assembly = plugin.Instance.GetType().Assembly;
 
@@ -67,8 +76,15 @@ namespace TimeoutLimit {
                 }
 
                 if (moveNextMethods.Count == 0) {
-                    Logger.LogWarning($"No MoveNext methods found in {plugin.Metadata.Name} [{plugin.Metadata.GUID}]");
+                    Logger.LogInfo($"No waitForQueue found in {plugin.Metadata.Name} [{plugin.Metadata.GUID}]");
                 }
+            }
+        }
+
+        public void SetJotunnTimeout(PluginInfo plugin) {
+            if (plugin != null && plugin.Instance != null && plugin.Metadata.GUID == "com.jotunn.jotunn" && plugin.Metadata.Version >= new System.Version("2.24.0")) {
+                Type customRPC = AccessTools.TypeByName("Jotunn.Entities.CustomRPC, Jotunn");
+                AccessTools.Field(customRPC, "Timeout").SetValue(null, Timeout.Value);
             }
         }
 
