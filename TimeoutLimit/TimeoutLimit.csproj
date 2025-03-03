@@ -70,7 +70,7 @@
       <Link>README.md</Link>
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
-    <Content Include="../icon.png">
+    <Content Include="../../icons/timout_icon.png">
       <Link>icon.png</Link>
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
