@@ -17,6 +17,9 @@ while read_dom; do
 	if [[ $ENTITY = "USE_R2MODMAN_AS_DEPLOY_FOLDER" ]]; then
 		USE_R2MODMAN_AS_DEPLOY_FOLDER=$CONTENT
 	fi
+	if [[ $ENTITY = "DEPLOY_FOLDER" ]]; then
+    DEPLOY_FOLDER=$CONTENT
+  fi
 done < Environment.props
 
 # set ModDir
@@ -26,12 +29,17 @@ else
 	BepInExFolder="$VALHEIM_INSTALL/BepInEx"
 fi
 
-PluginFolder="$BepInExFolder/plugins"
+PluginFolder="$DEPLOY_FOLDER/BepInEx/plugins"
 ModDir="$PluginFolder/$ModName"
+DedicatedDir="/e/Programme/Steam/steamapps/common/Valheim dedicated server/BepInEx/plugins/$ModName"
 
 # copy content
 mkdir -p "$ModDir"
+echo "Copying to $ModDir"
 cp "$ModName/bin/Debug/$ModName.dll" "$ModDir"
+mkdir -p "$DedicatedDir"
+echo "Copying to $DedicatedDir"
+cp "$ModName/bin/Debug/$ModName.dll" "$DedicatedDir"
 cp README.md "$ModDir"
 cp manifest.json "$ModDir"
 cp icon.png "$ModDir"

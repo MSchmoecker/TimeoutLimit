@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Reflection;
 using System.Reflection.Emit;
@@ -7,6 +8,7 @@ using BepInEx;
 using BepInEx.Bootstrap;
 using BepInEx.Configuration;
 using HarmonyLib;
+using Debug = UnityEngine.Debug;
 
 namespace TimeoutLimit {
     [BepInPlugin(ModGuid, ModName, ModVersion)]
@@ -112,6 +114,30 @@ namespace TimeoutLimit {
                 .Insert(loadTimeout)
                 .AddLabels(labels)
                 .InstructionEnumeration();
+        }
+
+        [HarmonyPatch(typeof(Debug), nameof(Debug.Log), new Type[] { typeof(object) }), HarmonyPrefix]
+        public static bool DebugContext(object message) {
+            if (message is string str && str.Contains("seconds config sending timeout") && !str.StartsWith("[")) {
+                Assembly callingAssembly;
+
+                try {
+                    callingAssembly = (new StackTrace().GetFrames() ?? Array.Empty<StackFrame>())
+                        .First(x => x.GetMethod().ReflectedType?.Assembly != typeof(Plugin).Assembly && x.GetMethod().ReflectedType?.Assembly != typeof(Debug).Assembly)
+                        .GetMethod()
+                        .ReflectedType?
+                        .Assembly;
+                } catch (Exception) {
+                    return true;
+                }
+
+                if (callingAssembly != null) {
+                    Debug.Log($"[{callingAssembly.GetName().Name}] {message}");
+                    return false;
+                }
+            }
+
+            return true;
         }
 
         public static IEnumerable<CodeInstruction> ServerSyncTranspiler(IEnumerable<CodeInstruction> instructions) {
