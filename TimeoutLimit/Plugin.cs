@@ -64,6 +64,20 @@ namespace TimeoutLimit {
                     .Where(t => t.IsClass && t.Name.Contains("waitForQueue"))
                     .ToList();
 
+                bool matchedAzuAntiCheat = false;
+
+                if (plugin.Metadata.GUID == "Azumatt.AzuAntiCheat" && waitForQueueClasses.Count == 0) {
+                    waitForQueueClasses = assembly.GetTypes()
+                        .SelectMany(t => t.GetNestedTypes(BindingFlags.NonPublic | BindingFlags.Instance))
+                        .SelectMany(t => t.GetMethods(BindingFlags.NonPublic | BindingFlags.Instance))
+                        .Where(m => m.Name.Contains("waitForQueue"))
+                        .SelectMany(m => m.DeclaringType?.GetNestedTypes(BindingFlags.NonPublic | BindingFlags.Instance))
+                        .ToList();
+
+                    matchedAzuAntiCheat = waitForQueueClasses.Count == 1;
+                    Logger.LogInfo($"Found special waitForQueue in AzuAntiCheat: {matchedAzuAntiCheat}");
+                }
+
                 List<MethodInfo> moveNextMethods = waitForQueueClasses
                     .SelectMany(t => t.GetMethods(BindingFlags.NonPublic | BindingFlags.Instance))
                     .Where(m => m.Name == "MoveNext")
@@ -71,7 +85,11 @@ namespace TimeoutLimit {
 
                 foreach (MethodInfo moveNextMethod in moveNextMethods) {
                     try {
-                        harmony.Patch(moveNextMethod, transpiler: new HarmonyMethod(typeof(Plugin).GetMethod(nameof(ServerSyncTranspiler))));
+                        if (matchedAzuAntiCheat) {
+                            harmony.Patch(moveNextMethod, transpiler: new HarmonyMethod(typeof(Plugin).GetMethod(nameof(AzuAntiCheatTranspiler))));
+                        } else {
+                            harmony.Patch(moveNextMethod, transpiler: new HarmonyMethod(typeof(Plugin).GetMethod(nameof(ServerSyncTranspiler))));
+                        }
                     } catch (Exception e) {
                         Logger.LogError($"Failed to patch {moveNextMethod.DeclaringType.FullName}.{moveNextMethod.Name}: {e}");
                     }
@@ -156,6 +174,32 @@ namespace TimeoutLimit {
                 .InsertAndAdvance(loadTimeout)
                 .InsertAndAdvance(new CodeInstruction(OpCodes.Box, typeof(float)))
                 .InsertAndAdvance(new CodeInstruction(OpCodes.Call, AccessTools.Method(typeof(string), nameof(string.Format), new Type[] { typeof(string), typeof(object), typeof(object) })))
+                // .MatchForward(false, new CodeMatch(OpCodes.Ldc_I4, 20000))
+                // .RemoveInstructions(1)
+                // .InsertAndAdvance(new CodeInstruction(OpCodes.Ldc_I4, 0))
+                .InstructionEnumeration();
+        }
+
+        public static IEnumerable<CodeInstruction> AzuAntiCheatTranspiler(IEnumerable<CodeInstruction> instructions) {
+            return new CodeMatcher(instructions)
+                .Start()
+                .MatchForward(false, new CodeMatch(OpCodes.Ldc_R4, 30f))
+                .ThrowIfNotMatch("Failed to match 30s timeout")
+                .RemoveInstructions(1)
+                .InsertAndAdvance(loadTimeout)
+                .Start()
+                .MatchForward(true, new CodeMatch(i => i.opcode == OpCodes.Call && i.operand is MethodInfo method && method.Name == "Format"))
+                .ThrowIfNotMatch("Failed to match string.Format")
+                .Advance(1)
+                .InsertAndAdvance(
+                    new CodeInstruction(OpCodes.Pop),
+                    new CodeInstruction(OpCodes.Ldstr, "Disconnecting peer after {0} seconds config sending timeout"),
+                    new CodeInstruction(OpCodes.Call, AccessTools.PropertyGetter(typeof(Plugin), nameof(Timeout))),
+                    new CodeInstruction(OpCodes.Callvirt, AccessTools.PropertyGetter(typeof(ConfigEntry<float>), nameof(ConfigEntry<float>.Value))),
+                    new CodeInstruction(OpCodes.Box, typeof(float)),
+                    new CodeInstruction(OpCodes.Call, AccessTools.Method(typeof(string), nameof(string.Format), new Type[] { typeof(string), typeof(object) }))
+                )
+                // .Start()
                 // .MatchForward(false, new CodeMatch(OpCodes.Ldc_I4, 20000))
                 // .RemoveInstructions(1)
                 // .InsertAndAdvance(new CodeInstruction(OpCodes.Ldc_I4, 0))
