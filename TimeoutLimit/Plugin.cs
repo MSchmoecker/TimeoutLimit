@@ -8,6 +8,7 @@ using BepInEx;
 using BepInEx.Bootstrap;
 using BepInEx.Configuration;
 using HarmonyLib;
+using UnityEngine;
 using Debug = UnityEngine.Debug;
 
 namespace TimeoutLimit {
@@ -113,6 +114,8 @@ namespace TimeoutLimit {
             new CodeInstruction(OpCodes.Callvirt, AccessTools.PropertyGetter(typeof(ConfigEntry<float>), nameof(ConfigEntry<float>.Value)))
         };
 
+        public static MethodInfo getTime = AccessTools.PropertyGetter(typeof(Time), nameof(Time.time));
+
         [HarmonyPatch(typeof(ZRpc), nameof(ZRpc.SetLongTimeout)), HarmonyTranspiler]
         public static IEnumerable<CodeInstruction> SetLongTimeoutTranspiler(IEnumerable<CodeInstruction> instructions) {
             CodeMatch[] loadFloat = new CodeMatch[] {
@@ -160,8 +163,13 @@ namespace TimeoutLimit {
 
         public static IEnumerable<CodeInstruction> ServerSyncTranspiler(IEnumerable<CodeInstruction> instructions) {
             return new CodeMatcher(instructions)
-                .MatchForward(false, new CodeMatch(OpCodes.Ldc_R4, 30f))
-                .ThrowIfNotMatch("Failed to match 30s timeout")
+                .MatchForward(false,
+                    new CodeMatch(i => i.Calls(getTime)),
+                    new CodeMatch(OpCodes.Ldc_R4),
+                    new CodeMatch(OpCodes.Add)
+                )
+                .ThrowIfNotMatch("Failed to match timeout calculation")
+                .Advance(1)
                 .RemoveInstructions(1)
                 .InsertAndAdvance(loadTimeout)
                 .MatchForward(false, new CodeMatch(OpCodes.Ldstr, "Disconnecting {0} after 30 seconds config sending timeout"))
@@ -183,8 +191,13 @@ namespace TimeoutLimit {
         public static IEnumerable<CodeInstruction> AzuAntiCheatTranspiler(IEnumerable<CodeInstruction> instructions) {
             return new CodeMatcher(instructions)
                 .Start()
-                .MatchForward(false, new CodeMatch(OpCodes.Ldc_R4, 30f))
-                .ThrowIfNotMatch("Failed to match 30s timeout")
+                .MatchForward(false,
+                    new CodeMatch(i => i.Calls(getTime)),
+                    new CodeMatch(OpCodes.Ldc_R4),
+                    new CodeMatch(OpCodes.Add)
+                )
+                .ThrowIfNotMatch("Failed to match timeout calculation")
+                .Advance(1)
                 .RemoveInstructions(1)
                 .InsertAndAdvance(loadTimeout)
                 .Start()
