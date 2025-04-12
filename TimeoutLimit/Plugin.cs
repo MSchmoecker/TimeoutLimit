@@ -17,7 +17,7 @@ namespace TimeoutLimit {
     public class Plugin : BaseUnityPlugin {
         public const string ModName = "TimeoutLimit";
         public const string ModGuid = "com.maxsch.valheim.TimeoutLimit";
-        public const string ModVersion = "1.0.0";
+        public const string ModVersion = "0.2.0";
 
         public static Harmony harmony;
 

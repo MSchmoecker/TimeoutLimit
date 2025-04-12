@@ -42,7 +42,7 @@ echo "Copying to $DedicatedDir"
 cp "$ModName/bin/Debug/$ModName.dll" "$DedicatedDir"
 cp README.md "$ModDir"
 cp manifest.json "$ModDir"
-cp icon.png "$ModDir"
+cp "$ModName/bin/Debug/icon.png" "$ModDir"
 
 # make zip files
 cd "$ModDir" || exit
