@@ -39,14 +39,14 @@ namespace TimeoutLimit {
 
         public void Start() {
             foreach (PluginInfo plugin in Chainloader.PluginInfos.Values) {
-                if (plugin == null || !plugin.Instance) {
+                if (plugin == null || !plugin.Instance || plugin.Metadata.GUID == ModGuid) {
                     continue;
                 }
 
-                Logger.LogInfo($"Patching {plugin.Metadata.Name} [{plugin.Metadata.GUID}]");
-
                 if (plugin.Metadata.GUID == "com.jotunn.jotunn") {
+                    Logger.LogInfo($"Patching {plugin.Metadata.Name} [{plugin.Metadata.GUID}]");
                     SetJotunnTimeout(plugin);
+                    continue;
                 }
 
                 Assembly assembly = plugin.Instance.GetType().Assembly;
@@ -76,13 +76,22 @@ namespace TimeoutLimit {
                         .ToList();
 
                     matchedAzuAntiCheat = waitForQueueClasses.Count == 1;
-                    Logger.LogInfo($"Found special waitForQueue in AzuAntiCheat: {matchedAzuAntiCheat}");
                 }
 
                 List<MethodInfo> moveNextMethods = waitForQueueClasses
                     .SelectMany(t => t.GetMethods(BindingFlags.NonPublic | BindingFlags.Instance))
                     .Where(m => m.Name == "MoveNext")
                     .ToList();
+
+                if (moveNextMethods.Count > 0) {
+                    if (plugin.Metadata.GUID == "Azumatt.AzuAntiCheat") {
+                        Logger.LogInfo($"Patching {plugin.Metadata.Name} [{plugin.Metadata.GUID}] (special case: {(matchedAzuAntiCheat ? "yes" : "no")})");
+                    } else {
+                        Logger.LogInfo($"Patching {plugin.Metadata.Name} [{plugin.Metadata.GUID}]");
+                    }
+                } else {
+                    Logger.LogInfo($"Skipping {plugin.Metadata.Name} [{plugin.Metadata.GUID}]");
+                }
 
                 foreach (MethodInfo moveNextMethod in moveNextMethods) {
                     try {
@@ -92,12 +101,8 @@ namespace TimeoutLimit {
                             harmony.Patch(moveNextMethod, transpiler: new HarmonyMethod(typeof(Plugin).GetMethod(nameof(ServerSyncTranspiler))));
                         }
                     } catch (Exception e) {
-                        Logger.LogError($"Failed to patch {moveNextMethod.DeclaringType.FullName}.{moveNextMethod.Name}: {e}");
+                        Logger.LogError($"Failed to patch {moveNextMethod?.DeclaringType?.FullName}.{moveNextMethod?.Name}: {e}");
                     }
-                }
-
-                if (moveNextMethods.Count == 0) {
-                    Logger.LogInfo($"No waitForQueue found in {plugin.Metadata.Name} [{plugin.Metadata.GUID}]");
                 }
             }
         }
